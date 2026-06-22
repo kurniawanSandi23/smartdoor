@@ -1,0 +1,8 @@
+@import "tailwindcss";
+
+/* Menambahkan konfigurasi font dan base style default ala enterprise */
+@layer base {
+  body {
+    @apply bg-gray-50 text-gray-800 antialiased;
+  }
+}

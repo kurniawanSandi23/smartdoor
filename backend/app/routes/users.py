@@ -1,11 +1,57 @@
 import requests
 from datetime import datetime, timezone
 from flask import Blueprint, current_app, request
+
 from app.extensions import db
 from app.models.access_log import AccessLog
+from app.models.user import User
+from app.models.registered_face import RegisteredFace
 from app.utils.response import success_response, error_response
 
 user_bp = Blueprint("user", __name__)
+
+
+def _map_user(row):
+    return {
+        "id": row.id,
+        "fullName": row.full_name,
+        "email": row.email,
+        "role": row.role,
+        "isActive": row.is_active,
+        "createdAt": row.created_at.isoformat() if row.created_at else None,
+        "updatedAt": row.updated_at.isoformat() if row.updated_at else None,
+    }
+
+
+def _map_registered_face(row):
+    return {
+        "id": row.id,
+        "name": row.name,
+        "embedding": row.embedding,
+        "livenessConfig": row.liveness_config,
+        "regLatencyMs": row.reg_latency_ms,
+        "createdAt": row.created_at.isoformat() if row.created_at else None,
+    }
+
+
+@user_bp.get("/profiles")
+def get_profiles():
+    try:
+        rows = db.session.query(User).order_by(User.created_at.desc()).all()
+        data = [_map_user(row) for row in rows]
+        return success_response(data, "Profiles loaded", 200)
+    except Exception as exc:
+        return error_response(str(exc), 500)
+
+
+@user_bp.get("/registered-faces")
+def get_registered_faces():
+    try:
+        rows = db.session.query(RegisteredFace).order_by(RegisteredFace.created_at.desc()).all()
+        data = [_map_registered_face(row) for row in rows]
+        return success_response(data, "Registered faces loaded", 200)
+    except Exception as exc:
+        return error_response(str(exc), 500)
 
 
 @user_bp.post("/register-face")

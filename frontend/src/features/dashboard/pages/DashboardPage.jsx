@@ -9,7 +9,7 @@ import LogAksesPintu from '../components/LogAksesPintu';
 
 export default function DashboardPage() {
   const [activeMenu, setActiveMenu] = useState('monitoring');
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false); // State kontrol menu di HP
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const navigate = useNavigate();
 
   const menuItems = [
@@ -20,18 +20,17 @@ export default function DashboardPage() {
   ];
 
   const handleLogout = () => {
+    localStorage.removeItem('accessToken');
     navigate('/login', { replace: true });
   };
 
   const handleMenuClick = (menuId) => {
     setActiveMenu(menuId);
-    setIsSidebarOpen(false); // Otomatis tutup sidebar setelah pilih menu di HP
+    setIsSidebarOpen(false);
   };
 
   return (
     <div className="min-h-screen flex bg-slate-50 text-slate-800 font-sans antialiased relative">
-      
-      {/* 1. SIDEBAR UNTUK DESKTOP (Layar Lebar) */}
       <aside className="w-72 bg-slate-950 text-slate-200 flex-col justify-between border-r border-slate-800 p-6 hidden lg:flex shrink-0">
         <div className="space-y-8">
           <div className="flex items-center space-x-3 border-b border-slate-800 pb-5">
@@ -75,15 +74,12 @@ export default function DashboardPage() {
         </button>
       </aside>
 
-      {/* 2. SIDEBAR OVERLAY/DRAWER UNTUK MOBILE (Akan meluncur dari kiri ke kanan di HP) */}
       <div className={`fixed inset-0 z-50 lg:hidden transition-all duration-300 ${isSidebarOpen ? 'visible' : 'invisible'}`}>
-        {/* Backdrop hitam transparan jika diklik menu menutup */}
-        <div 
+        <div
           className={`absolute inset-0 bg-slate-950/60 backdrop-blur-sm transition-opacity duration-300 ${isSidebarOpen ? 'opacity-100' : 'opacity-0'}`}
           onClick={() => setIsSidebarOpen(false)}
         />
-        
-        {/* Konten Menu Drawer */}
+
         <aside className={`absolute inset-y-0 left-0 w-72 bg-slate-950 p-6 flex flex-col justify-between border-r border-slate-900 transform transition-transform duration-300 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
           <div className="space-y-8">
             <div className="flex items-center justify-between border-b border-slate-800 pb-5">
@@ -93,7 +89,6 @@ export default function DashboardPage() {
                 </div>
                 <span className="font-bold tracking-wider text-sm text-white font-mono">SECURE-PANEL</span>
               </div>
-              {/* Tombol Close Sidebar */}
               <button onClick={() => setIsSidebarOpen(false)} className="p-1 text-slate-400 hover:text-white lg:hidden">
                 <X size={20} />
               </button>
@@ -126,13 +121,10 @@ export default function DashboardPage() {
         </aside>
       </div>
 
-      {/* 3. AREA KONTEN UTAMA DENGAN ADJUSTMENT HEADER */}
       <main className="flex-1 flex flex-col min-w-0 bg-[#F8FAFC]">
-        {/* Top Header Bar (Ditambahkan Tombol Hamburger Menu untuk Layar HP) */}
         <header className="h-16 bg-white border-b border-slate-200/80 px-4 sm:px-8 flex items-center justify-between shrink-0">
           <div className="flex items-center space-x-3">
-            {/* Tombol Hamburger - Hanya muncul di layar kecil */}
-            <button 
+            <button
               onClick={() => setIsSidebarOpen(true)}
               className="p-2 text-slate-600 hover:bg-slate-100 rounded-xl lg:hidden focus:outline-none"
             >
@@ -142,7 +134,7 @@ export default function DashboardPage() {
               {menuItems.find((m) => m.id === activeMenu)?.name}
             </h1>
           </div>
-          
+
           <div className="flex items-center space-x-2 sm:space-x-3">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse hidden sm:inline-block"></span>
             <span className="text-[10px] sm:text-xs font-bold text-slate-500 bg-slate-100 px-2.5 py-1.5 rounded-lg border border-slate-200">
@@ -151,7 +143,6 @@ export default function DashboardPage() {
           </div>
         </header>
 
-        {/* Kontainer Utama Area Konten */}
         <div className="p-4 sm:p-8 flex-1 overflow-y-auto">
           {activeMenu === 'monitoring' && <MonitoringRealtime />}
           {activeMenu === 'daftar-wajah' && <DaftarWajahUser />}

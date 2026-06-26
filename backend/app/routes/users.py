@@ -2,16 +2,33 @@ import requests
 from datetime import datetime, timezone
 from flask import Blueprint, current_app, request
 
-from app.extensions import db
-from app.models.access_log import AccessLog
-from app.models.user import User
-from app.models.registered_face import RegisteredFace
+from app.services.supabase_service import SupabaseService
 from app.utils.response import success_response, error_response
 
 user_bp = Blueprint("user", __name__)
+supabase = SupabaseService()
+
+
+def _get_supabase_rows(table_name):
+    if not supabase.is_ready():
+        return None
+
+    query = supabase.table(table_name).select("*").execute()
+    return query.data or []
 
 
 def _map_user(row):
+    if isinstance(row, dict):
+        return {
+            "id": row.get("id"),
+            "fullName": row.get("full_name") or row.get("fullName"),
+            "email": row.get("email"),
+            "role": row.get("role"),
+            "isActive": row.get("is_active") if "is_active" in row else row.get("isActive"),
+            "createdAt": row.get("created_at") or row.get("createdAt"),
+            "updatedAt": row.get("updated_at") or row.get("updatedAt"),
+        }
+
     return {
         "id": row.id,
         "fullName": row.full_name,
@@ -24,6 +41,16 @@ def _map_user(row):
 
 
 def _map_registered_face(row):
+    if isinstance(row, dict):
+        return {
+            "id": row.get("id"),
+            "name": row.get("name"),
+            "embedding": row.get("embedding"),
+            "livenessConfig": row.get("liveness_config") or row.get("livenessConfig"),
+            "regLatencyMs": row.get("reg_latency_ms") or row.get("regLatencyMs"),
+            "createdAt": row.get("created_at") or row.get("createdAt"),
+        }
+
     return {
         "id": row.id,
         "name": row.name,
@@ -37,7 +64,10 @@ def _map_registered_face(row):
 @user_bp.get("/profiles")
 def get_profiles():
     try:
-        rows = db.session.query(User).order_by(User.created_at.desc()).all()
+        rows = _get_supabase_rows("profiles")
+        if rows is None:
+            return error_response("Supabase belum dikonfigurasi", 503)
+
         data = [_map_user(row) for row in rows]
         return success_response(data, "Profiles loaded", 200)
     except Exception as exc:
@@ -47,7 +77,10 @@ def get_profiles():
 @user_bp.get("/registered-faces")
 def get_registered_faces():
     try:
-        rows = db.session.query(RegisteredFace).order_by(RegisteredFace.created_at.desc()).all()
+        rows = _get_supabase_rows("registered_faces")
+        if rows is None:
+            return error_response("Supabase belum dikonfigurasi", 503)
+
         data = [_map_registered_face(row) for row in rows]
         return success_response(data, "Registered faces loaded", 200)
     except Exception as exc:
@@ -114,22 +147,31 @@ def access_result():
         except Exception:
             parsed_waktu = datetime.now(timezone.utc)
 
-        new_log = AccessLog(
-            nama_user=nama_user,
-            waktu_akses=parsed_waktu,
-            keterangan=keterangan,
-            status=status,
-        )
+        if not supabase.is_ready():
+            return error_response("Supabase belum siap untuk menyimpan log akses", 503)
 
-        db.session.add(new_log)
-        db.session.commit()
+        payload = {
+            "name": nama_user,
+            "status": status,
+            "created_at": parsed_waktu.isoformat(),
+            "light_condition": keterangan,
+        }
+
+        try:
+            supabase.table("access_logs").insert(payload).execute()
+        except Exception as exc:
+            return error_response(f"Gagal menyimpan log akses: {str(exc)}", 500)
 
         return success_response({
             "received": True,
             "saved": True,
-            "log": new_log.to_dict()
+            "log": {
+                "namaUser": nama_user,
+                "waktuAkses": parsed_waktu.isoformat(),
+                "keterangan": keterangan,
+                "status": status,
+            }
         }, "Hasil scan berhasil disimpan", 201)
 
     except Exception as exc:
-        db.session.rollback()
         return error_response(str(exc), 500)

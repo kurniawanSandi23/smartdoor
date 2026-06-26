@@ -30,7 +30,7 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="min-h-screen flex bg-slate-50 text-slate-800 font-sans antialiased relative">
+    <div className="h-screen flex bg-slate-50 text-slate-800 font-sans antialiased relative overflow-hidden">
       <aside className="w-72 bg-slate-950 text-slate-200 flex-col justify-between border-r border-slate-800 p-6 hidden lg:flex shrink-0">
         <div className="space-y-8">
           <div className="flex items-center space-x-3 border-b border-slate-800 pb-5">
@@ -38,8 +38,8 @@ export default function DashboardPage() {
               <Terminal size={18} />
             </div>
             <div>
-              <span className="font-bold tracking-wider text-sm block text-white font-mono">SECURE-PANEL</span>
-              <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest block">Web Service Console</span>
+              <span className="font-bold tracking-wider text-sm block text-white font-mono">SMART DOOR LOCK</span>
+              <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest block">Web Service</span>
             </div>
           </div>
 
@@ -70,7 +70,7 @@ export default function DashboardPage() {
           className="flex items-center space-x-3 px-4 py-3 text-xs font-bold text-red-400 hover:bg-red-500/10 rounded-xl transition-colors mt-auto"
         >
           <LogOut size={16} />
-          <span>Keluar Sesi Admin</span>
+          <span>Logout</span>
         </button>
       </aside>
 
@@ -143,11 +143,13 @@ export default function DashboardPage() {
           </div>
         </header>
 
-        <div className="p-4 sm:p-8 flex-1 overflow-y-auto">
-          {activeMenu === 'monitoring' && <MonitoringRealtime />}
-          {activeMenu === 'daftar-wajah' && <DaftarWajahUser />}
-          {activeMenu === 'kelola-pengguna' && <KelolaPengguna />}
-          {activeMenu === 'log-akses' && <LogAksesPintu />}
+        <div className="flex-1 overflow-hidden">
+          <div className="h-full overflow-y-auto p-4 sm:p-8">
+            {activeMenu === 'monitoring' && <MonitoringRealtime />}
+            {activeMenu === 'daftar-wajah' && <DaftarWajahUser />}
+            {activeMenu === 'kelola-pengguna' && <KelolaPengguna />}
+            {activeMenu === 'log-akses' && <LogAksesPintu />}
+          </div>
         </div>
       </main>
     </div>

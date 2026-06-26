@@ -73,7 +73,7 @@ export default function KelolaPengguna() {
         <div className="space-y-0.5">
           <p className="font-bold">Data Bersumber dari Database</p>
           <p className="text-emerald-700/90 leading-relaxed font-medium">
-            Halaman ini membaca data dari tabel profiles dan registered_faces, bukan lagi data simulasi.
+            Halaman ini membaca data dari tabel registered_faces.
           </p>
         </div>
       </div>

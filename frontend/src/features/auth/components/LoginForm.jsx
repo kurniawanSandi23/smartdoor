@@ -29,7 +29,7 @@ export default function LoginForm({ onLoginSubmit, isFormDisabled, lockoutTime }
         challengeId: data.challengeId || '',
         captchaInput: '',
       }));
-    } catch (error) {
+    } catch {
       setCaptchaSvg('');
       setFormData((prev) => ({
         ...prev,
@@ -90,16 +90,12 @@ export default function LoginForm({ onLoginSubmit, isFormDisabled, lockoutTime }
       });
 
       if (!formData.challengeId) {
-        setErrors({
-          captchaInput: 'Captcha belum siap. Silakan muat ulang captcha.',
-        });
+        setErrors({ captchaInput: 'Captcha belum siap. Silakan muat ulang captcha.' });
         return false;
       }
 
       if (!formData.captchaInput.trim()) {
-        setErrors({
-          captchaInput: 'Kode captcha wajib diisi.',
-        });
+        setErrors({ captchaInput: 'Kode captcha wajib diisi.' });
         return false;
       }
 
@@ -116,19 +112,15 @@ export default function LoginForm({ onLoginSubmit, isFormDisabled, lockoutTime }
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     if (isFormDisabled) return;
     if (!validateForm()) return;
-
     await onLoginSubmit(formData);
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
+    <form onSubmit={handleSubmit} className="space-y-3">
       <div className="space-y-1.5">
-        <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block">
-          Username
-        </label>
+        <label className="block text-sm font-medium text-slate-700">Username</label>
         <div className="relative">
           <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
             <User size={15} />
@@ -139,18 +131,14 @@ export default function LoginForm({ onLoginSubmit, isFormDisabled, lockoutTime }
             onChange={(e) => handleChange('username', e.target.value)}
             disabled={isFormDisabled}
             placeholder="Masukkan username"
-            className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 text-sm font-semibold placeholder:font-normal placeholder:text-slate-400 transition-all disabled:opacity-50"
+            className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-4 text-sm text-slate-700 placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 disabled:opacity-50"
           />
         </div>
-        {errors.username && (
-          <p className="text-xs text-red-500 font-medium">{errors.username}</p>
-        )}
+        {errors.username && <p className="text-xs text-red-500">{errors.username}</p>}
       </div>
 
       <div className="space-y-1.5">
-        <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block">
-          Password
-        </label>
+        <label className="block text-sm font-medium text-slate-700">Password</label>
         <div className="relative">
           <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
             <Lock size={15} />
@@ -161,7 +149,7 @@ export default function LoginForm({ onLoginSubmit, isFormDisabled, lockoutTime }
             onChange={(e) => handleChange('password', e.target.value)}
             disabled={isFormDisabled}
             placeholder="Masukkan password"
-            className="w-full pl-10 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 text-sm font-semibold placeholder:font-normal placeholder:text-slate-400 transition-all disabled:opacity-50"
+            className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-12 text-sm text-slate-700 placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 disabled:opacity-50"
           />
           <button
             type="button"
@@ -172,27 +160,17 @@ export default function LoginForm({ onLoginSubmit, isFormDisabled, lockoutTime }
             {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
           </button>
         </div>
-        {errors.password && (
-          <p className="text-xs text-red-500 font-medium">{errors.password}</p>
-        )}
+        {errors.password && <p className="text-xs text-red-500">{errors.password}</p>}
       </div>
 
-      <div className="space-y-1.5">
-        <label className="text-xs font-bold text-slate-700 uppercase tracking-wider block">
-          Kode Captcha
-        </label>
-
-        <div className="flex items-center gap-3">
-          <div className="w-32 h-12 rounded-xl border border-slate-200 bg-slate-100 flex items-center justify-center overflow-hidden select-none">
+      <div className="space-y-2">
+        <label className="block text-sm font-medium text-slate-700">Kode Captcha</label>
+        <div className="flex items-center gap-2">
+          <div className="flex h-11 w-28 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-slate-100 select-none">
             {captchaLoading ? (
               <RefreshCw size={16} className="animate-spin text-slate-500" />
             ) : captchaSvg ? (
-              <img
-                src={captchaSvg}
-                alt="captcha"
-                className="w-full h-full object-contain"
-                draggable="false"
-              />
+              <img src={captchaSvg} alt="captcha" className="h-full w-full object-contain" draggable="false" />
             ) : (
               <span className="text-xs text-slate-400">Gagal</span>
             )}
@@ -204,39 +182,34 @@ export default function LoginForm({ onLoginSubmit, isFormDisabled, lockoutTime }
             onChange={(e) => handleChange('captchaInput', e.target.value.toUpperCase())}
             disabled={isFormDisabled}
             maxLength={5}
-            placeholder="Tulis captcha"
-            className="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-4 focus:ring-emerald-500/10 focus:border-emerald-500 text-sm font-semibold uppercase placeholder:font-normal placeholder:text-slate-400 transition-all disabled:opacity-50"
+            placeholder="Captcha"
+            className="flex-1 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm uppercase text-slate-700 placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 disabled:opacity-50"
           />
 
           <button
             type="button"
             onClick={fetchCaptcha}
-            className="px-3 py-3 rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition-colors"
+            className="rounded-2xl border border-slate-200 bg-white p-2.5 text-slate-600 transition-colors hover:bg-slate-50"
             title="Muat ulang captcha"
             disabled={isFormDisabled}
           >
-            <RefreshCw size={16} />
+            <RefreshCw size={15} />
           </button>
         </div>
-
-        {errors.captchaInput && (
-          <p className="text-xs text-red-500 font-medium">{errors.captchaInput}</p>
-        )}
+        {errors.captchaInput && <p className="text-xs text-red-500">{errors.captchaInput}</p>}
       </div>
 
-      <div className="flex items-start space-x-2 text-[11px] text-slate-500 bg-slate-50 border border-slate-200 rounded-xl p-3">
-        <Shield size={14} className="text-slate-400 mt-0.5 shrink-0" />
-        <span>
-          Gunakan kredensial administrator yang valid untuk mengakses panel pemantauan sistem.
-        </span>
+      <div className="flex items-start gap-2 rounded-2xl border border-emerald-100 bg-emerald-50/70 p-2.5 text-sm text-slate-600">
+        <Shield size={15} className="mt-0.5 shrink-0 text-emerald-600" />
+        <span>Gunakan akun administrator yang valid untuk mengakses sistem.</span>
       </div>
 
       <button
         type="submit"
         disabled={isFormDisabled}
-        className="w-full bg-slate-900 hover:bg-slate-800 disabled:bg-slate-400 text-white font-bold py-3.5 px-4 rounded-xl text-xs tracking-wider uppercase transition-colors flex justify-center items-center space-x-2 shadow-sm"
+        className="w-full rounded-2xl bg-slate-900 py-2.75 text-sm font-semibold text-white transition-all hover:bg-slate-800 hover:shadow-md disabled:bg-slate-400"
       >
-        <span>Masuk ke Sistem</span>
+        Masuk
       </button>
     </form>
   );

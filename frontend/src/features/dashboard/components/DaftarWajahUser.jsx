@@ -5,7 +5,7 @@ import api from '../../../config/api';
 
 export default function DaftarWajahUser() {
   const [nama, setNama] = useState('');
-  const [statusPi, setStatusPi] = useState('IDLE');
+  const [statusPi, setStatusPi] = useState(' : WAITING'); // IDLE, WAITING, SUCCESS
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleRegisterFace = async (e) => {
@@ -192,7 +192,7 @@ export default function DaftarWajahUser() {
       </div>
 
       <div className="bg-white p-4 rounded-2xl border border-slate-200/60 flex items-center justify-center text-center text-[11px] font-medium text-slate-400 shadow-sm">
-        <span>&copy; {new Date().getFullYear()} Kurniawan Sandi &bull; Politeknik Negeri Jakarta. All Rights Reserved.</span>
+        <span>&copy; {new Date().getFullYear()} SMART DOOR LOCK &bull; Smart Door Lock. All Rights Reserved.</span>
       </div>
     </div>
   );

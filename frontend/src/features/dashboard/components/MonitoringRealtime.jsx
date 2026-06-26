@@ -22,14 +22,26 @@ export default function MonitoringRealtime() {
         api.get('/api/devices'),
       ]);
 
-      setSummary(summaryResponse.data?.data || {
+      const summaryData = summaryResponse.data?.data || summaryResponse.data?.summary || summaryResponse.data || {
         total_access_logs: 0,
         total_register_logs: 0,
         total_spoofing_logs: 0,
-      });
+      };
 
-      setSpoofingLogs(Array.isArray(spoofingResponse.data?.data) ? spoofingResponse.data.data : []);
-      setDevices(Array.isArray(devicesResponse.data?.data) ? devicesResponse.data.data : []);
+      const extractDataArray = (payload) => {
+        if (Array.isArray(payload)) return payload;
+        if (payload && Array.isArray(payload.data)) return payload.data;
+        if (payload && payload.data && Array.isArray(payload.data.data)) return payload.data.data;
+        if (payload && payload.result && Array.isArray(payload.result)) return payload.result;
+        return [];
+      };
+
+      const spoofingData = extractDataArray(spoofingResponse.data);
+      const deviceData = extractDataArray(devicesResponse.data);
+
+      setSummary(summaryData);
+      setSpoofingLogs(spoofingData);
+      setDevices(deviceData);
       setIsError(false);
       setLastUpdated(new Date().toLocaleString('id-ID'));
     } catch (error) {
@@ -51,8 +63,8 @@ export default function MonitoringRealtime() {
   ).length;
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+    <div className="space-y-6 h-full">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-white p-5 rounded-2xl border border-slate-200/60 shadow-sm flex items-center justify-between">
           <div>
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Status Node Edge</span>
@@ -107,13 +119,13 @@ export default function MonitoringRealtime() {
           <div className="flex items-center space-x-2">
             <Activity size={14} className="text-slate-500" />
             <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider font-mono">
-              Log Analitik Anti-Spoofing Real-Time
+              Log Ancaman Spoofing Real-Time
             </h3>
           </div>
 
           <div className="flex items-center gap-3">
             <span className="text-[9px] bg-slate-100 px-2 py-1 text-slate-500 font-mono font-bold rounded">
-              METODE: LIVENESS CNN
+              METODE: LIVENESS
             </span>
             <button
               type="button"
@@ -133,7 +145,6 @@ export default function MonitoringRealtime() {
                 <th className="px-6 py-3">Waktu Event</th>
                 <th className="px-6 py-3">Jenis Ancaman</th>
                 <th className="px-6 py-3 text-center">Skor Spoof</th>
-                <th className="px-6 py-3 text-right">Tindakan Sistem</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-xs font-medium text-slate-700">
@@ -178,67 +189,8 @@ export default function MonitoringRealtime() {
           </table>
         </div>
       </div>
-
-      <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden">
-        <div className="p-5 border-b border-slate-100 flex items-center justify-between">
-          <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider font-mono">
-            Status Device Terdaftar
-          </h3>
-          <span className="text-[9px] bg-slate-100 px-2 py-1 text-slate-500 font-mono font-bold rounded">
-            {devices.length} DEVICE
-          </span>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse min-w-[720px]">
-            <thead>
-              <tr className="bg-slate-50 border-b border-slate-200 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                <th className="px-6 py-3">Nama Device</th>
-                <th className="px-6 py-3">Tipe</th>
-                <th className="px-6 py-3">IP Address</th>
-                <th className="px-6 py-3">Lokasi</th>
-                <th className="px-6 py-3 text-center">Status</th>
-                <th className="px-6 py-3">Last Seen</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 text-xs font-medium text-slate-700">
-              {devices.length > 0 ? (
-                devices.map((device) => (
-                  <tr key={device.id} className="hover:bg-slate-50/40 transition-colors">
-                    <td className="px-6 py-3.5 font-bold text-slate-900">{device.device_name || '-'}</td>
-                    <td className="px-6 py-3.5 text-slate-500">{device.device_type || '-'}</td>
-                    <td className="px-6 py-3.5 font-mono text-slate-500">{device.ip_address || '-'}</td>
-                    <td className="px-6 py-3.5 text-slate-500">{device.location || '-'}</td>
-                    <td className="px-6 py-3.5 text-center">
-                      <span
-                        className={`inline-flex items-center px-2.5 py-1 rounded-md text-[10px] font-mono font-bold uppercase tracking-wider border ${
-                          String(device.status || '').toLowerCase() === 'online'
-                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200/40'
-                            : 'bg-red-50 text-red-700 border-red-200/40'
-                        }`}
-                      >
-                        {device.status || '-'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-3.5 font-mono text-slate-500">
-                      {device.last_seen_at ? new Date(device.last_seen_at).toLocaleString('id-ID') : '-'}
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="6" className="px-6 py-10 text-center text-xs font-semibold text-slate-400 font-mono">
-                    BELUM ADA DEVICE TERDAFTAR.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
       <div className="bg-white p-4 rounded-2xl border border-slate-200/60 flex items-center justify-between text-[11px] font-medium text-slate-400 shadow-sm">
-        <span>&copy; {new Date().getFullYear()} Kurniawan Sandi &bull; Politeknik Negeri Jakarta. All Rights Reserved.</span>
+        <span>&copy; {new Date().getFullYear()} SMART DOOR LOCK &bull; Smart Door Lock. All Rights Reserved.</span>
         <span>Terakhir diperbarui: {lastUpdated || '-'}</span>
       </div>
     </div>

@@ -1,12 +1,14 @@
 from flask import Blueprint
 from app.services.supabase_service import SupabaseService
 from app.utils.response import success_response, error_response
+from app.utils.auth_utils import require_api_key
 
 health_bp = Blueprint("health", __name__)
 supabase = SupabaseService()
 
 
 @health_bp.get("/")
+@require_api_key
 def health_check():
     return success_response({
         "service": "smartdoor-backend",
@@ -15,6 +17,7 @@ def health_check():
 
 
 @health_bp.get("/supabase")
+@require_api_key
 def health_supabase():
     try:
         if not supabase.is_ready():
@@ -31,6 +34,7 @@ def health_supabase():
 
 
 @health_bp.get("/database")
+@require_api_key
 def health_database():
     try:
         if not supabase.is_ready():

@@ -1,4 +1,5 @@
 import os
+from datetime import timedelta
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -8,13 +9,25 @@ class Config:
     SECRET_KEY = os.getenv("SECRET_KEY", "change-this-secret")
     JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", SECRET_KEY)
 
+    JWT_ACCESS_TOKEN_EXPIRES = timedelta(minutes=int(os.getenv("JWT_ACCESS_TOKEN_EXPIRES_MINUTES", "15")))
+    JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=int(os.getenv("JWT_REFRESH_TOKEN_EXPIRES_DAYS", "7")))
+    JWT_TOKEN_LOCATION = ["headers"]
+    JWT_HEADER_NAME = "Authorization"
+    JWT_HEADER_TYPE = "Bearer"
+    JWT_ALGORITHM = "HS256"
+    JWT_IDENTITY_CLAIM = "sub"
+    JWT_ERROR_MESSAGE_KEY = "message"
+
     SQLALCHEMY_DATABASE_URI = os.getenv(
         "DATABASE_URL",
         "postgresql+psycopg2://postgres:password@localhost:5432/smartdoor_db"
     )
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
-    CORS_ORIGINS = os.getenv("CORS_ORIGINS", "*")
+    CORS_ORIGINS = os.getenv(
+        "CORS_ORIGINS",
+        "http://localhost:5173,http://127.0.0.1:5173"
+    )
 
     REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 
@@ -27,3 +40,6 @@ class Config:
     DEVICE_SECRET_KEY = os.getenv("DEVICE_SECRET_KEY", "")
     DEVICE_TIMEOUT = int(os.getenv("DEVICE_TIMEOUT", "10"))
     DEVICE_POLL_INTERVAL = int(os.getenv("DEVICE_POLL_INTERVAL", "1"))
+
+    API_KEY = os.getenv("API_KEY", "change-me-api-key")
+    SUPABASE_RLS_ENABLED = os.getenv("SUPABASE_RLS_ENABLED", "true").lower() == "true"

@@ -22,7 +22,9 @@ export function useAuth() {
 
   const login = async (formData) => {
     if (lockoutTime > 0) {
-      return { success: false, message: 'Akses dikunci sementara.' };
+      const message = 'Akses diblokir sementara. Tunggu beberapa saat.';
+      toast.error(message);
+      return { success: false, type: 'lockout', message };
     }
 
     setIsLoading(true);
@@ -35,13 +37,16 @@ export function useAuth() {
         challengeId: formData.challengeId || '',
       };
 
-      const response = await api.post('/api/auth/Login', payload);
-
+      const response = await api.post('/api/auth/login', payload);
       const responseData = response.data?.data || {};
       const accessToken = responseData.access_token;
 
       if (accessToken) {
         localStorage.setItem('accessToken', accessToken);
+        const apiKey = import.meta.env.VITE_API_KEY || '';
+        if (apiKey) {
+          localStorage.setItem('apiKey', apiKey);
+        }
       }
 
       setFailedAttempts(0);
@@ -50,22 +55,43 @@ export function useAuth() {
 
       return { success: true, data: responseData };
     } catch (error) {
+      const backendMessage = error.response?.data?.message || '';
       const nextAttempts = failedAttempts + 1;
       setFailedAttempts(nextAttempts);
 
-      if (error.response?.status === 429 || nextAttempts >= 4) {
+      if (error.response?.status === 429) {
         setLockoutTime(60);
-        toast.error('Terlalu banyak percobaan login. Coba lagi setelah 60 detik.');
-        return { success: false, message: 'Rate limit exceeded' };
+        const message =
+          backendMessage ||
+          'Akses diblokir selama 1 menit karena 3 kali percobaan gagal.';
+        toast.error(message);
+        return { success: false, type: 'lockout', message };
       }
 
       if (error.response?.status === 401) {
-        toast.error('Username, password, atau captcha salah.');
-        return { success: false, message: 'Unauthorized' };
+        let message = 'Login gagal. Silakan periksa kembali input Anda.';
+        let type = 'credentials';
+
+        if (backendMessage === 'Username atau password salah') {
+          message = 'Tolong masukkan username atau password yang sesuai.';
+          type = 'credentials';
+        } else if (backendMessage === 'Captcha salah') {
+          message = 'Tolong masukkan captcha yang benar.';
+          type = 'captcha';
+        } else if (
+          backendMessage === 'Captcha kadaluarsa atau tidak valid'
+        ) {
+          message =
+            'Captcha tidak valid atau sudah kadaluarsa. Silakan muat ulang captcha.';
+          type = 'captcha';
+        }
+
+        toast.error(message);
+        return { success: false, type, message };
       }
 
       toast.error('Gagal terhubung ke server.');
-      return { success: false, message: 'Network error' };
+      return { success: false, type: 'network', message: 'Network error' };
     } finally {
       setIsLoading(false);
     }

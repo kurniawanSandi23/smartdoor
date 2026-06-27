@@ -4,6 +4,7 @@ from flask import Blueprint, current_app, request
 
 from app.services.supabase_service import SupabaseService
 from app.utils.response import success_response, error_response
+from app.utils.auth_utils import admin_required, require_api_key
 
 user_bp = Blueprint("user", __name__)
 supabase = SupabaseService()
@@ -62,6 +63,8 @@ def _map_registered_face(row):
 
 
 @user_bp.get("/profiles")
+@require_api_key
+@admin_required
 def get_profiles():
     try:
         rows = _get_supabase_rows("profiles")
@@ -75,6 +78,8 @@ def get_profiles():
 
 
 @user_bp.get("/registered-faces")
+@require_api_key
+@admin_required
 def get_registered_faces():
     try:
         rows = _get_supabase_rows("registered_faces")
@@ -88,6 +93,8 @@ def get_registered_faces():
 
 
 @user_bp.post("/register-face")
+@require_api_key
+@admin_required
 def register_face():
     try:
         data = request.get_json(silent=True) or {}
@@ -130,6 +137,7 @@ def register_face():
 
 
 @user_bp.post("/access-result")
+@require_api_key
 def access_result():
     try:
         data = request.get_json(silent=True) or {}

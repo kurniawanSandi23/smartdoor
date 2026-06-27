@@ -1,8 +1,9 @@
-from flask import Flask
+from flask import Flask, make_response, request
 
 from config import Config
 from app.extensions import db, jwt, cors
 from app.routes.auth import auth_bp, init_limiter
+from app.utils.response import error_response
 
 
 def create_app():
@@ -11,9 +12,50 @@ def create_app():
 
     db.init_app(app)
     jwt.init_app(app)
-    cors.init_app(app, resources={r"/api/*": {"origins": app.config["CORS_ORIGINS"]}})
+
+    allowed_origins = [origin.strip() for origin in app.config["CORS_ORIGINS"].split(",") if origin.strip()]
+    cors.init_app(
+        app,
+        resources={r"/api/*": {"origins": allowed_origins}},
+        supports_credentials=True,
+        allow_headers=["Content-Type", "Authorization", "X-API-Key"],
+        methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+    )
+
+    @jwt.unauthorized_loader
+    def unauthorized_loader(_callback):
+        return error_response("Token JWT diperlukan", 401)
+
+    @jwt.invalid_token_loader
+    def invalid_token_loader(_callback):
+        return error_response("Token JWT tidak valid", 401)
+
+    @jwt.expired_token_loader
+    def expired_token_loader(_jwt_header, _jwt_payload):
+        return error_response("Token JWT kedaluwarsa", 401)
 
     init_limiter(app)
+
+    @app.before_request
+    def handle_preflight():
+        if request.method == "OPTIONS":
+            response = make_response("")
+            origin = request.headers.get("Origin")
+            if origin:
+                response.headers["Access-Control-Allow-Origin"] = origin
+                response.headers["Access-Control-Allow-Credentials"] = "true"
+            response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+            response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-API-Key"
+            return response, 200
+
+    @app.after_request
+    def add_cors_headers(response):
+        origin = request.headers.get("Origin")
+        if origin:
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+            response.headers["Vary"] = "Origin"
+        return response
 
     with app.app_context():
         from app.routes.users import user_bp

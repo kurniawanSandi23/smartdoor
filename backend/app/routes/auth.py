@@ -2,16 +2,22 @@ import base64
 import hashlib
 import random
 import string
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import redis
 from flask import Blueprint, current_app, request
-from flask_jwt_extended import create_access_token
+from flask_jwt_extended import create_access_token, get_jwt_identity, jwt_required
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from werkzeug.security import check_password_hash
 
 from app.utils.response import success_response, error_response
+from app.utils.auth_utils import require_api_key
+
+
+def _is_preflight():
+    return request.method == "OPTIONS"
+
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -20,12 +26,66 @@ limiter = Limiter(
     default_limits=["200 per hour"]
 )
 
+limiter.request_filter(_is_preflight)
+
 REDIS_CLIENT = None
+IN_MEMORY_STORE = None
 
 MAX_FAILED_ATTEMPTS = 3
-LOCKOUT_SECONDS = 900
+LOCKOUT_SECONDS = 60
 CAPTCHA_TTL_SECONDS = 120
 CAPTCHA_LENGTH = 5
+
+
+class LocalRedisFallback:
+    def __init__(self):
+        self.store = {}
+
+    def _cleanup(self, key):
+        item = self.store.get(key)
+        if not item:
+            return None
+        if item["expires_at"] is not None and datetime.utcnow() > item["expires_at"]:
+            self.store.pop(key, None)
+            return None
+        return item
+
+    def setex(self, key, ttl, value):
+        self.store[key] = {
+            "value": value,
+            "expires_at": datetime.utcnow() + timedelta(seconds=ttl),
+        }
+
+    def get(self, key):
+        item = self._cleanup(key)
+        return item["value"] if item else None
+
+    def delete(self, key):
+        self.store.pop(key, None)
+
+    def exists(self, key):
+        return 1 if self.get(key) is not None else 0
+
+    def incr(self, key):
+        current = self.get(key)
+        next_value = int(current or 0) + 1
+        expiry = None
+        item = self.store.get(key)
+        if item:
+            expiry = item["expires_at"]
+        self.store[key] = {
+            "value": str(next_value),
+            "expires_at": expiry or (datetime.utcnow() + timedelta(seconds=LOCKOUT_SECONDS))
+        }
+        return next_value
+
+    def expire(self, key, ttl):
+        item = self._cleanup(key)
+        if item:
+            item["expires_at"] = datetime.utcnow() + timedelta(seconds=ttl)
+            self.store[key] = item
+            return True
+        return False
 
 
 def init_limiter(app):
@@ -33,11 +93,20 @@ def init_limiter(app):
 
 
 def _get_redis():
-    global REDIS_CLIENT
-    if REDIS_CLIENT is None:
-        redis_url = current_app.config.get("REDIS_URL", "redis://localhost:6379/0")
-        REDIS_CLIENT = redis.Redis.from_url(redis_url, decode_responses=True)
-    return REDIS_CLIENT
+    global REDIS_CLIENT, IN_MEMORY_STORE
+    if REDIS_CLIENT is not None:
+        return REDIS_CLIENT
+
+    redis_url = current_app.config.get("REDIS_URL", "redis://localhost:6379/0")
+    try:
+        client = redis.Redis.from_url(redis_url, decode_responses=True)
+        client.ping()
+        REDIS_CLIENT = client
+        return REDIS_CLIENT
+    except redis.RedisError:
+        if IN_MEMORY_STORE is None:
+            IN_MEMORY_STORE = LocalRedisFallback()
+        return IN_MEMORY_STORE
 
 
 def _client_key():
@@ -130,6 +199,7 @@ def get_captcha():
         return error_response(str(exc), 500)
 
 
+@auth_bp.post("/login")
 @auth_bp.post("/Login")
 @limiter.limit("5 per minute")
 def login():
@@ -158,6 +228,19 @@ def login():
 
         captcha_hash = redis_client.get(_captcha_key(challenge_id))
         if not captcha_hash:
+            failed_key = _failed_key(username, client_key)
+            attempts = redis_client.incr(failed_key)
+            if attempts == 1:
+                redis_client.expire(failed_key, LOCKOUT_SECONDS)
+
+            if attempts >= MAX_FAILED_ATTEMPTS:
+                redis_client.setex(_lock_key(username, client_key), LOCKOUT_SECONDS, "1")
+                redis_client.delete(failed_key)
+                return error_response(
+                    "Akses dikunci sementara karena 3 kali gagal login",
+                    429
+                )
+
             return error_response("Captcha kadaluarsa atau tidak valid", 401)
 
         if _hash_captcha(captcha_input) != captcha_hash:
@@ -209,8 +292,12 @@ def login():
             identity=username,
             additional_claims={
                 "role": "admin",
+                "iss": "smartdoor",
+                "sub": username,
                 "login_at": datetime.utcnow().isoformat() + "Z",
             },
+            fresh=True,
+            expires_delta=timedelta(minutes=15),
         )
 
         return success_response({
@@ -226,10 +313,12 @@ def login():
 
 
 @auth_bp.get("/me")
+@require_api_key
+@jwt_required()
 def me():
     try:
         return success_response({
-            "username": current_app.config.get("ADMIN_USERNAME", "admin"),
+            "username": get_jwt_identity(),
             "role": "admin"
         }, "Profile loaded", 200)
     except Exception as exc:
@@ -237,5 +326,6 @@ def me():
 
 
 @auth_bp.post("/logout")
+@require_api_key
 def logout():
     return success_response(None, "Logout berhasil", 200)

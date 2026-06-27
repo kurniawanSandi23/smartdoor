@@ -1,6 +1,7 @@
 from flask import Blueprint, request
 from app.services.supabase_service import SupabaseService
 from app.utils.response import success_response, error_response
+from app.utils.auth_utils import admin_required, require_api_key
 from datetime import datetime
 
 devices_bp = Blueprint("devices", __name__)
@@ -8,6 +9,8 @@ supabase = SupabaseService()
 
 
 @devices_bp.get("/")
+@require_api_key
+@admin_required
 def list_devices():
     try:
         query = supabase.table("devices").select("*").order("created_at", desc=True).execute()
@@ -17,6 +20,7 @@ def list_devices():
 
 
 @devices_bp.post("/register")
+@require_api_key
 def register_device():
     try:
         data = request.get_json(silent=True) or {}
@@ -43,6 +47,7 @@ def register_device():
 
 
 @devices_bp.get("/<device_id>")
+@require_api_key
 def get_device(device_id):
     try:
         query = supabase.table("devices").select("*").eq("id", device_id).limit(1).execute()
@@ -57,6 +62,8 @@ def get_device(device_id):
 
 
 @devices_bp.patch("/<device_id>")
+@require_api_key
+@admin_required
 def update_device(device_id):
     try:
         data = request.get_json(silent=True) or {}
@@ -83,6 +90,7 @@ def update_device(device_id):
 
 
 @devices_bp.get("/<device_id>/health")
+@require_api_key
 def device_health(device_id):
     try:
         query = supabase.table("devices").select("id, device_name, status, last_seen_at, ip_address").eq("id", device_id).limit(1).execute()
@@ -103,6 +111,7 @@ def device_health(device_id):
 
 
 @devices_bp.post("/<device_id>/heartbeat")
+@require_api_key
 def heartbeat(device_id):
     try:
         data = request.get_json(silent=True) or {}

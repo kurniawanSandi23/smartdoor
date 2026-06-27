@@ -26,10 +26,10 @@ class Config:
 
     CORS_ORIGINS = os.getenv(
         "CORS_ORIGINS",
-        "http://localhost:5173,http://127.0.0.1:5173"
+        "http://103.93.132.205:5000"
     )
 
-    REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+    REDIS_URL = os.getenv("REDIS_URL", "redis://103.93.132.205:5000/0")
 
     ADMIN_USERNAME = os.getenv("ADMIN_USERNAME", "admin")
     ADMIN_PASSWORD_HASH = os.getenv("ADMIN_PASSWORD_HASH", "")
@@ -41,5 +41,5 @@ class Config:
     DEVICE_TIMEOUT = int(os.getenv("DEVICE_TIMEOUT", "10"))
     DEVICE_POLL_INTERVAL = int(os.getenv("DEVICE_POLL_INTERVAL", "1"))
 
-    API_KEY = os.getenv("API_KEY", "change-me-api-key")
+    API_KEY = os.getenv("API_KEY", "SuperRahasiaApiKey123!")
     SUPABASE_RLS_ENABLED = os.getenv("SUPABASE_RLS_ENABLED", "true").lower() == "true"

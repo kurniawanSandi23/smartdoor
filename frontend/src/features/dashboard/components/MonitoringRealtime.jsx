@@ -14,30 +14,84 @@ export default function MonitoringRealtime() {
   const [isError, setIsError] = useState(false);
   const [lastUpdated, setLastUpdated] = useState('');
 
+  // helper: ubah berbagai bentuk payload menjadi array
+  const extractDataArray = (payload) => {
+    if (Array.isArray(payload)) return payload;
+    if (!payload) return [];
+    if (Array.isArray(payload.data)) return payload.data;
+    if (payload.data && Array.isArray(payload.data.data)) return payload.data.data;
+    if (Array.isArray(payload.result)) return payload.result;
+    return [];
+  };
+
+  // helper: normalisasi satu spoof log menjadi fields yang komponen pakai
+  const normalizeSpoofLog = (raw) => {
+    if (!raw) return null;
+    const id = raw.id || raw.uuid || raw._id || null;
+    const spoofScore = raw.spoofScore ?? raw.spoof_score ?? raw.score ?? raw.spoof_score_value ?? null;
+    const spoofType = raw.spoofType ?? raw.spoof_type ?? raw.type ?? raw.spoof_type_text ?? null;
+    const createdAtRaw = raw.createdAt ?? raw.created_at ?? raw.timestamp ?? raw.time ?? null;
+    const spoofLatencyMs = raw.spoofLatencyMs ?? raw.spoof_latency_ms ?? raw.latency_ms ?? null;
+
+    // parse number safely
+    const spoofScoreNum = spoofScore === null || spoofScore === undefined ? null : Number(spoofScore);
+    // normalize date to ISO if possible
+    let createdAt = null;
+    if (createdAtRaw) {
+      // try Date parsing; if format "YYYY-MM-DD HH:mm:ss+00" replace space with T
+      const s = String(createdAtRaw).includes(' ') && !String(createdAtRaw).includes('T')
+        ? String(createdAtRaw).replace(' ', 'T')
+        : String(createdAtRaw);
+      const d = new Date(s);
+      if (!Number.isNaN(d.getTime())) createdAt = d.toISOString();
+      else createdAt = String(createdAtRaw);
+    }
+
+    return {
+      id,
+      spoofScore: spoofScoreNum,
+      spoofType,
+      createdAt,
+      spoofLatencyMs,
+      // keep raw in case needed
+      _raw: raw,
+    };
+  };
+
+  // helper: normalisasi devices (contoh jika API memakai snake_case)
+  const normalizeDevice = (raw) => {
+    if (!raw) return null;
+    return {
+      id: raw.id ?? raw.device_id ?? null,
+      name: raw.name ?? raw.device_name ?? null,
+      status: String(raw.status ?? raw.device_status ?? raw.status_text ?? '').toLowerCase(),
+      _raw: raw,
+    };
+  };
+
   const fetchMonitoringData = async () => {
     try {
+      setIsLoading(true);
       const [summaryResponse, spoofingResponse, devicesResponse] = await Promise.all([
         api.get('/api/logs/dashboard-summary'),
         api.get('/api/logs/spoofing', { params: { limit: 10 } }),
         api.get('/api/devices'),
       ]);
 
-      const summaryData = summaryResponse.data?.data || summaryResponse.data?.summary || summaryResponse.data || {
-        total_access_logs: 0,
-        total_register_logs: 0,
-        total_spoofing_logs: 0,
+      // normalize summary (handle snake_case)
+      const rawSummary = summaryResponse.data?.data ?? summaryResponse.data?.summary ?? summaryResponse.data ?? {};
+      const summaryData = {
+        total_access_logs: rawSummary.total_access_logs ?? rawSummary.totalAccessLogs ?? rawSummary.access_count ?? 0,
+        total_register_logs: rawSummary.total_register_logs ?? rawSummary.totalRegisterLogs ?? rawSummary.register_count ?? 0,
+        total_spoofing_logs: rawSummary.total_spoofing_logs ?? rawSummary.totalSpoofingLogs ?? rawSummary.spoof_count ?? 0,
+        ...rawSummary,
       };
 
-      const extractDataArray = (payload) => {
-        if (Array.isArray(payload)) return payload;
-        if (payload && Array.isArray(payload.data)) return payload.data;
-        if (payload && payload.data && Array.isArray(payload.data.data)) return payload.data.data;
-        if (payload && payload.result && Array.isArray(payload.result)) return payload.result;
-        return [];
-      };
+      const spoofArr = extractDataArray(spoofingResponse.data);
+      const deviceArr = extractDataArray(devicesResponse.data);
 
-      const spoofingData = extractDataArray(spoofingResponse.data);
-      const deviceData = extractDataArray(devicesResponse.data);
+      const spoofingData = spoofArr.map(normalizeSpoofLog).filter(Boolean);
+      const deviceData = deviceArr.map(normalizeDevice).filter(Boolean);
 
       setSummary(summaryData);
       setSpoofingLogs(spoofingData);

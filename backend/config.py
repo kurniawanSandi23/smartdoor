@@ -26,7 +26,7 @@ class Config:
 
     CORS_ORIGINS = os.getenv(
         "CORS_ORIGINS",
-        "http://103.93.132.205:5000"
+        "http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000,http://127.0.0.1:3000"
     )
 
     REDIS_URL = os.getenv("REDIS_URL", "redis://103.93.132.205:5000/0")
